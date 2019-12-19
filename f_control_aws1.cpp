@@ -1,51 +1,27 @@
-// Copyright(c) 2016 Yohei Matsumoto, All right reserved. 
+// Copyright(c) 2016-2019 Yohei Matsumoto, All right reserved. 
 
-// f_aws1_ctrl.cpp is free software: you can redistribute it and/or modify
+// f_control_aws1.cpp is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// f_aws1_ctrl.cpp is distributed in the hope that it will be useful,
+// f_control_aws1.cpp is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with f_aws1_ctrl.cpp.  If not, see <http://www.gnu.org/licenses/>. 
-#include <cstdio>
-#include <cstring>
-#include <cmath>
+// along with f_control_aws1.cpp.  If not, see <http://www.gnu.org/licenses/>. 
 
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <map>
-
-using namespace std;
-
-#include "../util/aws_stdlib.h"
-#include "../util/aws_thread.h"
-#include "../util/c_clock.h"
-
-#include <opencv2/opencv.hpp>
-using namespace cv;
-
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-#include <signal.h>
-#include <errno.h>
-
-#include  "../driver/zgpio.h"
-#include "f_aws1_ctrl.h"
-
-const char * f_aws1_ctrl:: m_str_adclpf_type[ADCLPF_NONE] = {
+#include  "zgpio.h"
+#include "f_control_aws1.hpp"
+DEFINE_FILTER(f_control_aws1)
+  
+const char * f_control_aws1:: m_str_adclpf_type[ADCLPF_NONE] = {
   "avg", "gauss"
 };
 
-f_aws1_ctrl::f_aws1_ctrl(const char * name): 
+f_control_aws1::f_control_aws1(const char * name): 
   f_base(name),  m_fd(-1), m_sim(false), m_verb(false),
   m_ch_ctrl_ui(NULL), m_ch_ctrl_ap1(NULL), m_ch_ctrl_ap2(NULL),  m_ch_ctrl_stat(NULL), 
   m_adclpf(false), m_sz_adclpf(5), m_cur_adcsmpl(0), m_sigma_adclpf(3.0)
@@ -133,16 +109,16 @@ f_aws1_ctrl::f_aws1_ctrl(const char * name):
   register_fpar("rud_sta_out", &m_stat.rud_sta_out, "Output value for rudder status.");
 }
 
-f_aws1_ctrl::~f_aws1_ctrl()
+f_control_aws1::~f_control_aws1()
 {
 }
 
-bool f_aws1_ctrl::init_run()
+bool f_control_aws1::init_run()
 {
   if(!m_sim){
     m_fd = open(m_dev, O_RDWR);
     if(m_fd == -1){
-      cerr << "Error in f_aws1_ctrl::init_run, opening device " << m_dev << "." << endl; 
+      cerr << "Error in f_control_aws1::init_run, opening device " << m_dev << "." << endl; 
       cerr << "    Message: " << strerror(errno) << endl;
       return false;
     }
@@ -161,13 +137,13 @@ bool f_aws1_ctrl::init_run()
   return true;
 }
 
-void f_aws1_ctrl::destroy_run()
+void f_control_aws1::destroy_run()
 {
   if(m_fd != -1)
     close(m_fd);
 }
 
-void f_aws1_ctrl::get_gpio()
+void f_control_aws1::get_gpio()
 {
   unsigned int val;
   if(!m_sim){
@@ -215,7 +191,7 @@ void f_aws1_ctrl::get_gpio()
 // 127-132: Deadslow Ahead (nutral to nutral forward)
 // 132-255: Ahead (nutral forward to max)
 
-void f_aws1_ctrl::set_gpio()
+void f_control_aws1::set_gpio()
 {
   unsigned int val;
 
@@ -253,7 +229,7 @@ void f_aws1_ctrl::set_gpio()
   }
 }
 
-bool f_aws1_ctrl::proc()
+bool f_control_aws1::proc()
 {
   get_inst();
 
@@ -283,7 +259,7 @@ bool f_aws1_ctrl::proc()
   return true;
 }
 
-void f_aws1_ctrl::lpf()
+void f_control_aws1::lpf()
 {
   if(m_sz_adclpf != m_kern_adclpf.size()){ // initialize filter
     if(m_verb)
@@ -353,13 +329,13 @@ void f_aws1_ctrl::lpf()
   m_cur_adcsmpl = (m_cur_adcsmpl > 0 ? m_cur_adcsmpl - 1 : m_sz_adclpf - 1);
 }
 
-void f_aws1_ctrl::set_stat()
+void f_control_aws1::set_stat()
 {
   m_stat.tcur = m_cur_time;
   m_ch_ctrl_stat->set(m_stat);
 }
 
-void f_aws1_ctrl::get_inst()
+void f_control_aws1::get_inst()
 {
 
   s_aws1_ctrl_inst inst;

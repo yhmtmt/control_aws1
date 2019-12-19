@@ -1,32 +1,30 @@
-// Copyright(c) 2016 Yohei Matsumoto, All right reserved. 
+// Copyright(c) 2016-2019 Yohei Matsumoto, All right reserved. 
 
-// f_aws1_ctrl.h is free software: you can redistribute it and/or modify
+// f_control_aws1.h is free software: you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation, either version 3 of the License, or
 // (at your option) any later version.
 
-// f_aws1_ctrl.h is distributed in the hope that it will be useful,
+// f_control_aws1.h is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
 
 // You should have received a copy of the GNU General Public License
-// along with f_aws1_ctrl.h.  If not, see <http://www.gnu.org/licenses/>. 
+// along with f_control_aws1.h.  If not, see <http://www.gnu.org/licenses/>. 
 
-#ifndef _F_AWS1_CTRL_H_
-#define _F_AWS1_CTRL_H_
+#ifndef F_CONTROL_AWS1_HPP
+#define F_CONTROL_AWS1_HPP
 
-#include "../channel/ch_vector.h"
-#include "../channel/ch_aws1_ctrl.h"
+#include "ch_vector.hpp"
+#include "ch_aws1_ctrl.hpp"
 
-#include "../util/aws_stdlib.h"
-
-#include "f_base.h"
+#include "filter_base.hpp"
 
 
 extern  const char * str_aws1_ctrl_src[ACS_NONE];
 
-class f_aws1_ctrl: public f_base
+class f_control_aws1: public f_base
 {
  protected:
   ch_aws1_ctrl_inst * m_ch_ctrl_ui, * m_ch_ctrl_ap1, * m_ch_ctrl_ap2;
@@ -70,9 +68,9 @@ class f_aws1_ctrl: public f_base
   void get_inst();
 
 public:
-  f_aws1_ctrl(const char * name);
+  f_control_aws1(const char * name);
   
-  virtual ~f_aws1_ctrl();
+  virtual ~f_control_aws1();
   
   virtual bool init_run();
   
