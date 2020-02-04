@@ -48,11 +48,6 @@ f_control_aws1::f_control_aws1(const char * name):
   register_fpar("awsrud", &m_stat.rud_aws, "Control value of AWS1's rudder.");
   register_fpar("awsmeng", &m_stat.meng_aws, "Control value of AWS1's main engine.");
 
-  // remote controller's control parameters (Read Only)
-  register_fpar("rmcrud", &m_stat.rud_rmc, "Control value of AWS1's rudder controller.");
-  register_fpar("rmcmeng", &m_stat.meng_rmc, "Control value of AWS1's main engine controller.");
-  register_fpar("rud_sta", &m_stat.rud_sta, "Rudder Status of AWS1's.");
-
   // Remote controllers control points of the main engine. 
   register_fpar("meng_max_rmc", &m_stat.meng_max_rmc, "Maximum control control value of AWS1's main engine controller.");
   register_fpar("meng_nuf_rmc", &m_stat.meng_nuf_rmc, "Nutral to Forward control value of AWS1's main engine controller.");
@@ -79,19 +74,8 @@ f_control_aws1::f_control_aws1(const char * name):
   register_fpar("rud_nut", &m_stat.rud_nut, "Nutral control value for AWS1's rudder.");
   register_fpar("rud_min", &m_stat.rud_min, "Minimum control value for AWS1's rudder.");
 
-  // Rudder indicator's controll points.
-  register_fpar("rud_sta_max", &m_stat.rud_sta_max, "Maximum value of AWS1's rudder angle indicator.");
-  register_fpar("rud_sta_nut", &m_stat.rud_sta_nut, "Nutral value of AWS1's rudder angle indicator.");
-  register_fpar("rud_sta_min", &m_stat.rud_sta_min, "Minimum value of AWS1's rudder angle indicator.");
-
-  // Control points as the rudder indicator output.
-  register_fpar("rud_sta_out_max", &m_stat.rud_sta_out_max, "Maximum output value of AWS1's rudder angle to rudder pump.");
-  register_fpar("rud_sta_out_nut", &m_stat.rud_sta_out_nut, "Nutral output value of AWS1's rudder angle to rudder pump.");
-  register_fpar("rud_sta_out_min", &m_stat.rud_sta_out_min, "Minimum output value of AWS1's rudder angle to rudder pump.");
-
   register_fpar("meng", &m_stat.meng, "Output value for main engine.");
   register_fpar("rud", &m_stat.rud, "Output value for rudder.");
-  register_fpar("rud_sta_out", &m_stat.rud_sta_out, "Output value for rudder status.");
 }
 
 f_control_aws1::~f_control_aws1()
@@ -107,8 +91,6 @@ bool f_control_aws1::init_run()
       cerr << "    Message: " << strerror(errno) << endl;
       return false;
     }
-  }else{
-    m_rud_sta_sim = (float) m_stat.rud_sta;
   }
 
   if(m_flog_name[0] != 0){
@@ -130,33 +112,6 @@ void f_control_aws1::destroy_run()
 
 void f_control_aws1::get_gpio()
 {
-  unsigned int val;
-  if(!m_sim){
-    ioctl(m_fd, ZGPIO_IOCGET, &val);
-    m_stat.rud_rmc = ((unsigned char*) &val)[2];
-    m_stat.meng_rmc = ((unsigned char*) &val)[3];
-  }else{
-    unsigned rud_inst = map_oval(m_stat.rud,
-		m_stat.rud_max, m_stat.rud_nut, m_stat.rud_min,
-		m_stat.rud_sta_max, m_stat.rud_sta_nut, m_stat.rud_sta_min);
-#define RUD_PER_CYCLE 0.45
-    if(rud_inst > m_stat.rud_sta){
-      m_rud_sta_sim += RUD_PER_CYCLE;
-    }else{
-      m_rud_sta_sim -= RUD_PER_CYCLE;
-    }
-    m_stat.rud_sta = (unsigned char) m_rud_sta_sim;
-  }
- 
-  if(m_stat.ctrl_src == ACS_RMT){
-    m_stat.rud_aws = map_oval(m_stat.rud_rmc, 
-			      m_stat.rud_max_rmc, m_stat.rud_nut_rmc, m_stat.rud_min_rmc,
-			      0xff, 0x7f, 0x00);
-    m_stat.meng_aws = map_oval(m_stat.meng_rmc,
-			       m_stat.meng_max_rmc, m_stat.meng_nuf_rmc, m_stat.meng_nut_rmc, 
-			       m_stat.meng_nub_rmc, m_stat.meng_min_rmc,
-			       0xff, 0x7f + 0x19, 0x7f, 0x7f - 0x19, 0x00);
-  }
 }
 
 // In this method, aws's control values are assumed to be 0-255.
@@ -190,16 +145,6 @@ void f_control_aws1::set_gpio()
 		      m_stat.meng_max, m_stat.meng_nuf, m_stat.meng_nut, 
 		      m_stat.meng_nub, m_stat.meng_min);  
     break;
-  case ACS_RMT:
-    m_stat.rud = map_oval(m_stat.rud_rmc, 
-			 m_stat.rud_max_rmc, m_stat.rud_nut_rmc, m_stat.rud_min_rmc,
-			 m_stat.rud_max, m_stat.rud_nut, m_stat.rud_min);
-    m_stat.meng = map_oval(m_stat.meng_rmc, 
-			  m_stat.meng_max_rmc, m_stat.meng_nuf_rmc, m_stat.meng_nut_rmc, 
-			  m_stat.meng_nub_rmc, m_stat.meng_min_rmc,
-			  m_stat.meng_max, m_stat.meng_nuf, m_stat.meng_nut, m_stat.meng_nub, 
-			  m_stat.meng_min);  
-    break;
   }
   
   ((unsigned char *) &val)[2] = m_stat.rud;
@@ -222,18 +167,14 @@ bool f_control_aws1::proc()
 
   if(m_verb){
     cout << "Control Values." << endl;
-    cout << "    rmc rud " << (int) m_stat.rud_rmc << " meng " << (int) m_stat.meng_rmc << endl;
     cout << "    aws rud " << (int) m_stat.rud_aws << " meng " << (int) m_stat.meng_aws << endl;
     cout << "    out rud " << (int) m_stat.rud << " meng " << (int) m_stat.meng << endl;
-    cout << "    rud stat in " << (int) m_stat.rud_sta << " out " << (int) m_stat.rud_sta_out << endl;
 
   }
   if(m_flog.is_open()){
     m_flog << m_cur_time << " ";
-    m_flog << (int) m_stat.rud_rmc << " " << (int) m_stat.meng_rmc << " " ;
     m_flog << (int) m_stat.rud_aws << " " << (int) m_stat.meng_aws << " " ;
     m_flog << (int) m_stat.rud << " " << (int) m_stat.meng << " " ;
-    m_flog << (int) m_stat.rud_sta << " " << (int) m_stat.rud_sta_out << endl;
   }
 
   set_stat();
@@ -246,9 +187,6 @@ void f_control_aws1::lpf()
     if(m_verb)
     // allocating memory
     m_kern_adclpf.resize(m_sz_adclpf);
-    m_rud_smpl.resize(m_sz_adclpf, (int) m_stat.rud_rmc);
-    m_meng_smpl.resize(m_sz_adclpf, (int) m_stat.meng_rmc);
-    //m_rud_sta_smpl.resize(m_sz_adclpf, (int) m_stat.rud_sta);
 
     // building filter kernel.
     switch(m_type_adclpf){
@@ -285,24 +223,14 @@ void f_control_aws1::lpf()
       cout << " done." << endl;
   }
 
-  m_rud_smpl[m_cur_adcsmpl] = m_stat.rud_rmc;
-  m_meng_smpl[m_cur_adcsmpl] = m_stat.meng_rmc;
-  //m_rud_sta_smpl[m_cur_adcsmpl] = m_stat.rud_sta;
-  
-
   // kernel convolution
-  double rud = 0., meng = 0., rud_sta = 0.;
+  double rud = 0., meng = 0.;
   
   for(int i = 0, j = m_cur_adcsmpl; i < m_sz_adclpf; i++, j = (j + 1) % m_sz_adclpf ){
     rud += m_rud_smpl[j] * m_kern_adclpf[i];
     meng += m_meng_smpl[j] * m_kern_adclpf[i];
-    //rud_sta += m_rud_sta_smpl[j] * m_kern_adclpf[i];
   }
   
-  m_stat.rud_rmc = rud;
-  m_stat.meng_rmc = meng;
-  // m_stat.rud_sta = rud_sta;
-
   m_cur_adcsmpl = (m_cur_adcsmpl > 0 ? m_cur_adcsmpl - 1 : m_sz_adclpf - 1);
 }
 
