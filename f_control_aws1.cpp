@@ -48,26 +48,12 @@ f_control_aws1::f_control_aws1(const char * name):
   register_fpar("awsrud", &m_stat.rud_aws, "Control value of AWS1's rudder.");
   register_fpar("awsmeng", &m_stat.meng_aws, "Control value of AWS1's main engine.");
 
-  // Remote controllers control points of the main engine. 
-  register_fpar("meng_max_rmc", &m_stat.meng_max_rmc, "Maximum control control value of AWS1's main engine controller.");
-  register_fpar("meng_nuf_rmc", &m_stat.meng_nuf_rmc, "Nutral to Forward control value of AWS1's main engine controller.");
-  register_fpar("meng_nut_rmc", &m_stat.meng_nut_rmc, "Nutral control value of AWS1's main engine controller.");
-  register_fpar("meng_nub_rmc", &m_stat.meng_nub_rmc, "Nutral to Backward control value of AWS1's main engine controller.");
-  register_fpar("meng_min_rmc", &m_stat.meng_min_rmc, "Minimum control value of AWS1's main engine controller.");
-
   // Each control points of the main engine output.
   register_fpar("meng_max", &m_stat.meng_max, "Maximum control value for AWS1's main engine.");
   register_fpar("meng_nuf", &m_stat.meng_nuf, "Nutral to Forward control value for AWS1's main engine.");
   register_fpar("meng_nut", &m_stat.meng_nut, "Nutral control value for AWS1's main engine.");
   register_fpar("meng_nub", &m_stat.meng_nub, "Nutral to Backward control value for AWS1's main engine.");
   register_fpar("meng_min", &m_stat.meng_min, "Minimum control value for AWS1's main engine.");
-
-  // Remote controllers control points of the sub engine.
-
-  // Remote controller's control points of the rudder.
-  register_fpar("rud_max_rmc", &m_stat.rud_max_rmc, "Maximum control value of AWS1's rudder controller.");
-  register_fpar("rud_nut_rmc", &m_stat.rud_nut_rmc, "Nutral control value of AWS1's rudder controller.");
-  register_fpar("rud_min_rmc", &m_stat.rud_min_rmc, "Minimum control value of AWS1's rudder controller.");
 
   // Each controll points of the rudder output.
   register_fpar("rud_max", &m_stat.rud_max, "Maximum control value for AWS1's rudder.");
