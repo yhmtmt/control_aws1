@@ -46,21 +46,21 @@ f_control_aws1::f_control_aws1(const char * name):
 
   // aws's control parameters
   register_fpar("awsrud", &m_stat.rud_aws, "Control value of AWS1's rudder.");
-  register_fpar("awsmeng", &m_stat.meng_aws, "Control value of AWS1's main engine.");
+  register_fpar("awseng", &m_stat.eng_aws, "Control value of AWS1's main engine.");
 
   // Each control points of the main engine output.
-  register_fpar("meng_max", &m_stat.meng_max, "Maximum control value for AWS1's main engine.");
-  register_fpar("meng_nuf", &m_stat.meng_nuf, "Nutral to Forward control value for AWS1's main engine.");
-  register_fpar("meng_nut", &m_stat.meng_nut, "Nutral control value for AWS1's main engine.");
-  register_fpar("meng_nub", &m_stat.meng_nub, "Nutral to Backward control value for AWS1's main engine.");
-  register_fpar("meng_min", &m_stat.meng_min, "Minimum control value for AWS1's main engine.");
+  register_fpar("eng_max", &m_stat.eng_max, "Maximum control value for AWS1's main engine.");
+  register_fpar("eng_nuf", &m_stat.eng_nuf, "Nutral to Forward control value for AWS1's main engine.");
+  register_fpar("eng_nut", &m_stat.eng_nut, "Nutral control value for AWS1's main engine.");
+  register_fpar("eng_nub", &m_stat.eng_nub, "Nutral to Backward control value for AWS1's main engine.");
+  register_fpar("eng_min", &m_stat.eng_min, "Minimum control value for AWS1's main engine.");
 
   // Each controll points of the rudder output.
   register_fpar("rud_max", &m_stat.rud_max, "Maximum control value for AWS1's rudder.");
   register_fpar("rud_nut", &m_stat.rud_nut, "Nutral control value for AWS1's rudder.");
   register_fpar("rud_min", &m_stat.rud_min, "Minimum control value for AWS1's rudder.");
 
-  register_fpar("meng", &m_stat.meng, "Output value for main engine.");
+  register_fpar("eng", &m_stat.eng, "Output value for main engine.");
   register_fpar("rud", &m_stat.rud, "Output value for rudder.");
 }
 
@@ -126,15 +126,15 @@ void f_control_aws1::set_gpio()
     m_stat.rud = map_oval(m_stat.rud_aws, 
 		     0xff, 0x7f, 0x00, 
 		     m_stat.rud_max, m_stat.rud_nut, m_stat.rud_min);
-    m_stat.meng = map_oval(m_stat.meng_aws, 
+    m_stat.eng = map_oval(m_stat.eng_aws, 
 		      0xff, 0x7f + 0x19, 0x7f, 0x7f - 0x19, 0x00,
-		      m_stat.meng_max, m_stat.meng_nuf, m_stat.meng_nut, 
-		      m_stat.meng_nub, m_stat.meng_min);  
+		      m_stat.eng_max, m_stat.eng_nuf, m_stat.eng_nut, 
+		      m_stat.eng_nub, m_stat.eng_min);  
     break;
   }
   
   ((unsigned char *) &val)[2] = m_stat.rud;
-  ((unsigned char *) &val)[3] = m_stat.meng;
+  ((unsigned char *) &val)[3] = m_stat.eng;
     
   if(!m_sim){
     ioctl(m_fd, ZGPIO_IOCSET2, &val);
@@ -153,14 +153,14 @@ bool f_control_aws1::proc()
 
   if(m_verb){
     cout << "Control Values." << endl;
-    cout << "    aws rud " << (int) m_stat.rud_aws << " meng " << (int) m_stat.meng_aws << endl;
-    cout << "    out rud " << (int) m_stat.rud << " meng " << (int) m_stat.meng << endl;
+    cout << "    aws rud " << (int) m_stat.rud_aws << " eng " << (int) m_stat.eng_aws << endl;
+    cout << "    out rud " << (int) m_stat.rud << " eng " << (int) m_stat.eng << endl;
 
   }
   if(m_flog.is_open()){
     m_flog << m_cur_time << " ";
-    m_flog << (int) m_stat.rud_aws << " " << (int) m_stat.meng_aws << " " ;
-    m_flog << (int) m_stat.rud << " " << (int) m_stat.meng << " " ;
+    m_flog << (int) m_stat.rud_aws << " " << (int) m_stat.eng_aws << " " ;
+    m_flog << (int) m_stat.rud << " " << (int) m_stat.eng << " " ;
   }
 
   set_stat();
@@ -210,11 +210,11 @@ void f_control_aws1::lpf()
   }
 
   // kernel convolution
-  double rud = 0., meng = 0.;
+  double rud = 0., eng = 0.;
   
   for(int i = 0, j = m_cur_adcsmpl; i < m_sz_adclpf; i++, j = (j + 1) % m_sz_adclpf ){
     rud += m_rud_smpl[j] * m_kern_adclpf[i];
-    meng += m_meng_smpl[j] * m_kern_adclpf[i];
+    eng += m_eng_smpl[j] * m_kern_adclpf[i];
   }
   
   m_cur_adcsmpl = (m_cur_adcsmpl > 0 ? m_cur_adcsmpl - 1 : m_sz_adclpf - 1);
@@ -240,13 +240,13 @@ void f_control_aws1::get_inst()
   switch(m_stat.ctrl_src){
   case ACS_UI:
     m_stat.rud_aws = inst.rud_aws;
-    m_stat.meng_aws = inst.meng_aws;
+    m_stat.eng_aws = inst.eng_aws;
     break;
   case ACS_AP1:
     if(m_ch_ctrl_ap1){
       m_ch_ctrl_ap1->get(inst);
       m_stat.rud_aws = inst.rud_aws;
-      m_stat.meng_aws = inst.meng_aws;
+      m_stat.eng_aws = inst.eng_aws;
     }else{
       cerr << "In " << m_name << ", ";
       cerr << "No autopilot channel 1 is connected" << endl;
@@ -256,7 +256,7 @@ void f_control_aws1::get_inst()
     if(m_ch_ctrl_ap2){
       m_ch_ctrl_ap2->get(inst);
       m_stat.rud_aws = inst.rud_aws;
-      m_stat.meng_aws = inst.meng_aws;
+      m_stat.eng_aws = inst.eng_aws;
     }else{
       cerr << "In " << m_name << ", ";
       cerr << "No autopilot channel 2 is connected" << endl;

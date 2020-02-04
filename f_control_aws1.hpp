@@ -53,7 +53,7 @@ class f_control_aws1: public f_base
   
   vector<float> m_kern_adclpf;
   vector<int> m_rud_smpl;
-  vector<int> m_meng_smpl;
+  vector<int> m_eng_smpl;
   vector<int> m_rud_sta_smpl;
 
   void lpf();
