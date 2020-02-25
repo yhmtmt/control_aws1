@@ -27,7 +27,7 @@ extern  const char * str_aws1_ctrl_src[ACS_NONE];
 class f_control_aws1: public f_base
 {
  protected:
-  ch_aws1_ctrl_inst * m_ch_ctrl_ui, * m_ch_ctrl_ap1, * m_ch_ctrl_ap2;
+  ch_aws1_ctrl_inst * m_ch_ctrl_ui, * m_ch_ctrl_ap;
   ch_aws1_ctrl_stat * m_ch_ctrl_stat;   // channel for control parameters
   char m_dev[1024];         // device path, e.g. "/dev/zgpio0"
   char m_flog_name[1024];

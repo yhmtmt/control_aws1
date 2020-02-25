@@ -23,15 +23,14 @@ const char * f_control_aws1:: m_str_adclpf_type[ADCLPF_NONE] = {
 
 f_control_aws1::f_control_aws1(const char * name): 
   f_base(name),  m_fd(-1), m_sim(false), m_verb(false),
-  m_ch_ctrl_ui(NULL), m_ch_ctrl_ap1(NULL), m_ch_ctrl_ap2(NULL),  m_ch_ctrl_stat(NULL), 
+  m_ch_ctrl_ui(NULL), m_ch_ctrl_ap(NULL),  m_ch_ctrl_stat(NULL), 
   m_adclpf(false), m_sz_adclpf(5), m_cur_adcsmpl(0), m_sigma_adclpf(3.0)
 {
   strcpy(m_dev, "/dev/zgpio1");
   m_flog_name[0] = 0;
 
   register_fpar("ch_ctrl_ui", (ch_base**)&m_ch_ctrl_ui, typeid(ch_aws1_ctrl_inst).name(), "Channel of the AWS1's control inputs from UI.");
-  register_fpar("ch_ctrl_ap1", (ch_base**)&m_ch_ctrl_ap1, typeid(ch_aws1_ctrl_inst).name(), "Channel of the AWS1's control inputs from AutoPilot1.");
-  register_fpar("ch_ctrl_ap2", (ch_base**)&m_ch_ctrl_ap2, typeid(ch_aws1_ctrl_inst).name(), "Channel of the AWS1's control inputs from AutoPilot2.");
+  register_fpar("ch_ctrl_ap", (ch_base**)&m_ch_ctrl_ap, typeid(ch_aws1_ctrl_inst).name(), "Channel of the AWS1's control inputs from AutoPilot1.");
   register_fpar("ch_ctrl_stat", (ch_base**)&m_ch_ctrl_stat, typeid(ch_aws1_ctrl_stat).name(), "Channel of the AWS1 control outputs.");
   register_fpar("device", m_dev, 1023, "AWS1's control gpio device path");
   register_fpar("flog", m_flog_name, 1023, "Control log file.");
@@ -119,8 +118,7 @@ void f_control_aws1::set_gpio()
 
   switch(m_stat.ctrl_src){
   case ACS_UI:
-  case ACS_AP1:
-  case ACS_AP2:
+  case ACS_AP:
   case ACS_FSET:
   case ACS_NONE:
     m_stat.rud = map_oval(m_stat.rud_aws, 
@@ -242,24 +240,14 @@ void f_control_aws1::get_inst()
     m_stat.rud_aws = inst.rud_aws;
     m_stat.eng_aws = inst.eng_aws;
     break;
-  case ACS_AP1:
-    if(m_ch_ctrl_ap1){
-      m_ch_ctrl_ap1->get(inst);
+  case ACS_AP:
+    if(m_ch_ctrl_ap){
+      m_ch_ctrl_ap->get(inst);
       m_stat.rud_aws = inst.rud_aws;
       m_stat.eng_aws = inst.eng_aws;
     }else{
       cerr << "In " << m_name << ", ";
       cerr << "No autopilot channel 1 is connected" << endl;
-    }
-    break;
-  case ACS_AP2:
-    if(m_ch_ctrl_ap2){
-      m_ch_ctrl_ap2->get(inst);
-      m_stat.rud_aws = inst.rud_aws;
-      m_stat.eng_aws = inst.eng_aws;
-    }else{
-      cerr << "In " << m_name << ", ";
-      cerr << "No autopilot channel 2 is connected" << endl;
     }
     break;
   }
