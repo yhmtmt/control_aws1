@@ -36,7 +36,7 @@ f_control_aws1::f_control_aws1(const char * name):
   register_fpar("flog", m_flog_name, 1023, "Control log file.");
   register_fpar("sim", &m_sim, "Simulation mode.");
   register_fpar("verb", &m_verb, "For debug.");
-  register_fpar("acs", (int*) &m_stat.ctrl_src, ACS_NONE, str_aws1_ctrl_src,  "AWS control source.");
+  register_fpar("acs", (int*) &m_stat.ctrl_src, ControlSource_NONE, str_aws1_ctrl_src,  "AWS control source.");
   // LPF related parameters
   register_fpar("adclpf", &m_adclpf, "LPF is applied for the ADC inputs.");
   register_fpar("sz_adclpf", &m_sz_adclpf, "Window size of the ADC-LPF.");
@@ -117,10 +117,10 @@ void f_control_aws1::set_gpio()
   unsigned int val;
 
   switch(m_stat.ctrl_src){
-  case ACS_UI:
-  case ACS_AP:
-  case ACS_FSET:
-  case ACS_NONE:
+  case ControlSource_UI:
+  case ControlSource_AP:
+  case ControlSource_FSET:
+  case ControlSource_NONE:
     m_stat.rud = map_oval(m_stat.rud_aws, 
 		     0xff, 0x7f, 0x00, 
 		     m_stat.rud_max, m_stat.rud_nut, m_stat.rud_min);
@@ -236,11 +236,11 @@ void f_control_aws1::get_inst()
   m_stat.ctrl_src = inst.ctrl_src;
 
   switch(m_stat.ctrl_src){
-  case ACS_UI:
+  case ControlSource_UI:
     m_stat.rud_aws = inst.rud_aws;
     m_stat.eng_aws = inst.eng_aws;
     break;
-  case ACS_AP:
+  case ControlSource_AP:
     if(m_ch_ctrl_ap){
       m_ch_ctrl_ap->get(inst);
       m_stat.rud_aws = inst.rud_aws;

@@ -22,7 +22,7 @@
 #include "filter_base.hpp"
 
 
-extern  const char * str_aws1_ctrl_src[ACS_NONE];
+extern  const char * str_aws1_ctrl_src[ControlSource_NONE];
 
 class f_control_aws1: public f_base
 {
