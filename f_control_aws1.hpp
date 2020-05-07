@@ -27,8 +27,18 @@ extern  const char * str_aws1_ctrl_src[ControlSource_NONE];
 class f_control_aws1: public f_base
 {
  protected:
-  ch_aws1_ctrl_inst * m_ch_ctrl_ui, * m_ch_ctrl_ap;
-  ch_aws1_ctrl_stat * m_ch_ctrl_stat;   // channel for control parameters
+  // ch_aws1* are removed soon. ch_ctrl_data the replacment.
+  ch_ctrl_data * m_ch_ctrl_out;         // (ui<-autopilot<-control)
+  ch_ctrl_data * m_ch_ctrl_in;          // (ui->autopilot->control)
+  unsigned char buf[64];
+  size_t buf_len;
+  flatbuffers::FlatBufferBuilder builder;
+  Control::Config config;
+  unsigned char rud_normal, eng_normal, rud, eng;
+  unsigned char eng_max, eng_nuf, eng_nut, eng_nub, eng_min,
+    rud_max, rud_nut, rud_min;
+
+  
   char m_dev[1024];         // device path, e.g. "/dev/zgpio0"
   char m_flog_name[1024];
   ofstream m_flog;
@@ -57,9 +67,6 @@ class f_control_aws1: public f_base
   vector<int> m_rud_sta_smpl;
 
   void lpf();
-
-  s_aws1_ctrl_stat m_stat;
-
   void get_gpio();
   void set_gpio();
 

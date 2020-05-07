@@ -23,20 +23,21 @@ const char * f_control_aws1:: m_str_adclpf_type[ADCLPF_NONE] = {
 
 f_control_aws1::f_control_aws1(const char * name): 
   f_base(name),  m_fd(-1), m_sim(false), m_verb(false),
-  m_ch_ctrl_ui(NULL), m_ch_ctrl_ap(NULL),  m_ch_ctrl_stat(NULL), 
+  m_ch_ctrl_out(nullptr), m_ch_ctrl_in(nullptr),
+  rud_normal(127), eng_normal(127), rud(127), eng(127),
   m_adclpf(false), m_sz_adclpf(5), m_cur_adcsmpl(0), m_sigma_adclpf(3.0)
 {
   strcpy(m_dev, "/dev/zgpio1");
   m_flog_name[0] = 0;
-
-  register_fpar("ch_ctrl_ui", (ch_base**)&m_ch_ctrl_ui, typeid(ch_aws1_ctrl_inst).name(), "Channel of the AWS1's control inputs from UI.");
-  register_fpar("ch_ctrl_ap", (ch_base**)&m_ch_ctrl_ap, typeid(ch_aws1_ctrl_inst).name(), "Channel of the AWS1's control inputs from AutoPilot1.");
-  register_fpar("ch_ctrl_stat", (ch_base**)&m_ch_ctrl_stat, typeid(ch_aws1_ctrl_stat).name(), "Channel of the AWS1 control outputs.");
+ 
+  register_fpar("ch_ctrl_out", (ch_base**)&m_ch_ctrl_out,
+		typeid(ch_ctrl_data).name(), "Control data out (to autopilot)");
+  register_fpar("ch_ctrl_in", (ch_base**)&m_ch_ctrl_in,
+		typeid(ch_ctrl_data).name(), "Control data in (from autopilot)");
   register_fpar("device", m_dev, 1023, "AWS1's control gpio device path");
   register_fpar("flog", m_flog_name, 1023, "Control log file.");
   register_fpar("sim", &m_sim, "Simulation mode.");
   register_fpar("verb", &m_verb, "For debug.");
-  register_fpar("acs", (int*) &m_stat.ctrl_src, ControlSource_NONE, str_aws1_ctrl_src,  "AWS control source.");
   // LPF related parameters
   register_fpar("adclpf", &m_adclpf, "LPF is applied for the ADC inputs.");
   register_fpar("sz_adclpf", &m_sz_adclpf, "Window size of the ADC-LPF.");
@@ -44,23 +45,23 @@ f_control_aws1::f_control_aws1(const char * name):
   register_fpar("sigma_adclpf", &m_sigma_adclpf, "Standard deviation of the gaussian kernel of the ADC-LPF (This can only be used in the case of the filter type is gauss)");
 
   // aws's control parameters
-  register_fpar("awsrud", &m_stat.rud_aws, "Control value of AWS1's rudder.");
-  register_fpar("awseng", &m_stat.eng_aws, "Control value of AWS1's main engine.");
+  register_fpar("awsrud", &rud_normal, "Control value of AWS1's rudder.");
+  register_fpar("awseng", &eng_normal, "Control value of AWS1's main engine.");
 
   // Each control points of the main engine output.
-  register_fpar("eng_max", &m_stat.eng_max, "Maximum control value for AWS1's main engine.");
-  register_fpar("eng_nuf", &m_stat.eng_nuf, "Nutral to Forward control value for AWS1's main engine.");
-  register_fpar("eng_nut", &m_stat.eng_nut, "Nutral control value for AWS1's main engine.");
-  register_fpar("eng_nub", &m_stat.eng_nub, "Nutral to Backward control value for AWS1's main engine.");
-  register_fpar("eng_min", &m_stat.eng_min, "Minimum control value for AWS1's main engine.");
+  register_fpar("eng_max", &eng_max, "Maximum control value for AWS1's main engine.");
+  register_fpar("eng_nuf", &eng_nuf, "Nutral to Forward control value for AWS1's main engine.");
+  register_fpar("eng_nut", &eng_nut, "Nutral control value for AWS1's main engine.");
+  register_fpar("eng_nub", &eng_nub, "Nutral to Backward control value for AWS1's main engine.");
+  register_fpar("eng_min", &eng_min, "Minimum control value for AWS1's main engine.");
 
   // Each controll points of the rudder output.
-  register_fpar("rud_max", &m_stat.rud_max, "Maximum control value for AWS1's rudder.");
-  register_fpar("rud_nut", &m_stat.rud_nut, "Nutral control value for AWS1's rudder.");
-  register_fpar("rud_min", &m_stat.rud_min, "Minimum control value for AWS1's rudder.");
+  register_fpar("rud_max", &rud_max, "Maximum control value for AWS1's rudder.");
+  register_fpar("rud_nut", &rud_nut, "Nutral control value for AWS1's rudder.");
+  register_fpar("rud_min", &rud_min, "Minimum control value for AWS1's rudder.");
 
-  register_fpar("eng", &m_stat.eng, "Output value for main engine.");
-  register_fpar("rud", &m_stat.rud, "Output value for rudder.");
+  register_fpar("eng", &eng, "Output value for main engine.");
+  register_fpar("rud", &rud, "Output value for rudder.");
 }
 
 f_control_aws1::~f_control_aws1()
@@ -115,24 +116,15 @@ void f_control_aws1::get_gpio()
 void f_control_aws1::set_gpio()
 {
   unsigned int val;
-
-  switch(m_stat.ctrl_src){
-  case ControlSource_UI:
-  case ControlSource_AP:
-  case ControlSource_FSET:
-  case ControlSource_NONE:
-    m_stat.rud = map_oval(m_stat.rud_aws, 
-		     0xff, 0x7f, 0x00, 
-		     m_stat.rud_max, m_stat.rud_nut, m_stat.rud_min);
-    m_stat.eng = map_oval(m_stat.eng_aws, 
-		      0xff, 0x7f + 0x19, 0x7f, 0x7f - 0x19, 0x00,
-		      m_stat.eng_max, m_stat.eng_nuf, m_stat.eng_nut, 
-		      m_stat.eng_nub, m_stat.eng_min);  
-    break;
-  }
-  
-  ((unsigned char *) &val)[2] = m_stat.rud;
-  ((unsigned char *) &val)[3] = m_stat.eng;
+  rud = map_oval(rud_normal,
+		 0xff, 0x7f, 0x00, 
+		 rud_max, rud_nut, rud_min);
+  eng = map_oval(eng_normal, 
+		 0xff, 0x7f + 0x19, 0x7f, 0x7f - 0x19, 0x00,
+		 eng_max, eng_nuf, eng_nut, 
+		 eng_nub, eng_min);  
+  ((unsigned char *) &val)[2] = rud;
+  ((unsigned char *) &val)[3] = eng;
     
   if(!m_sim){
     ioctl(m_fd, ZGPIO_IOCSET2, &val);
@@ -149,16 +141,10 @@ bool f_control_aws1::proc()
 
   set_gpio();
 
-  if(m_verb){
-    cout << "Control Values." << endl;
-    cout << "    aws rud " << (int) m_stat.rud_aws << " eng " << (int) m_stat.eng_aws << endl;
-    cout << "    out rud " << (int) m_stat.rud << " eng " << (int) m_stat.eng << endl;
-
-  }
   if(m_flog.is_open()){
     m_flog << m_cur_time << " ";
-    m_flog << (int) m_stat.rud_aws << " " << (int) m_stat.eng_aws << " " ;
-    m_flog << (int) m_stat.rud << " " << (int) m_stat.eng << " " ;
+    m_flog << (int) rud_normal << " " << (int) eng_normal << " " ;
+    m_flog << (int) rud << " " << (int) eng << " " ;
   }
 
   set_stat();
@@ -220,35 +206,44 @@ void f_control_aws1::lpf()
 
 void f_control_aws1::set_stat()
 {
-  m_stat.tcur = m_cur_time;
-  m_ch_ctrl_stat->set(m_stat);
+  if(m_ch_ctrl_out &&
+     (config.engine_max() != eng_max ||
+      config.engine_min() != eng_min ||
+      config.engine_nutral() != eng_nut ||
+      config.engine_forward() != eng_nuf ||
+      config.engine_backward() != eng_nub ||
+      config.rudder_max() != rud_max ||
+      config.rudder_min() != rud_min ||
+      config.rudder_mid() != rud_nut)){
+    builder.Clear();
+    auto payload = builder.CreateStruct(Control::Config(eng_max, eng_nuf, eng_nut, eng_nub, eng_min, rud_max, rud_nut, rud_min));
+    auto data = CreateData(builder, get_time(),
+			   Control::Payload_Config, payload.Union());
+    builder.Finish(data);
+    m_ch_ctrl_out->push(builder.GetBufferPointer(), builder.GetSize());
+    
+  }  
 }
 
 void f_control_aws1::get_inst()
-{
-
-  s_aws1_ctrl_inst inst;
-  if(m_ch_ctrl_ui){
-    m_ch_ctrl_ui->get(inst);
-  }
-
-  m_stat.tcur = inst.tcur;
-  m_stat.ctrl_src = inst.ctrl_src;
-
-  switch(m_stat.ctrl_src){
-  case ControlSource_UI:
-    m_stat.rud_aws = inst.rud_aws;
-    m_stat.eng_aws = inst.eng_aws;
-    break;
-  case ControlSource_AP:
-    if(m_ch_ctrl_ap){
-      m_ch_ctrl_ap->get(inst);
-      m_stat.rud_aws = inst.rud_aws;
-      m_stat.eng_aws = inst.eng_aws;
-    }else{
-      cerr << "In " << m_name << ", ";
-      cerr << "No autopilot channel 1 is connected" << endl;
+{  
+  while(1){
+    if(m_ch_ctrl_in){
+      m_ch_ctrl_in->pop(buf, buf_len);
+      auto data = Control::GetData(buf);
+      switch(data->payload_type()){
+      case Control::Payload_Engine:
+	eng_normal = (unsigned char) (data->payload_as_Engine()->value());
+	if(m_ch_ctrl_out) m_ch_ctrl_out->push(buf, buf_len);
+	break;
+      case Control::Payload_Rudder:
+	rud_normal = (unsigned char) (data->payload_as_Engine()->value());
+	if(m_ch_ctrl_out) m_ch_ctrl_out->push(buf, buf_len);	
+	break;
+      case Control::Payload_Config:
+	config = *data->payload_as_Config();
+	break;
+      }
     }
-    break;
   }
 }
