@@ -31,7 +31,7 @@ class f_control_aws1: public f_base
   ch_ctrl_data * m_ch_ctrl_out;         // (ui<-autopilot<-control)
   ch_ctrl_data * m_ch_ctrl_in;          // (ui->autopilot->control)
   unsigned char buf[64];
-  size_t buf_len;
+  unsigned int buf_len;
   flatbuffers::FlatBufferBuilder builder;
   Control::Config config;
   unsigned char rud_normal, eng_normal, rud, eng;
