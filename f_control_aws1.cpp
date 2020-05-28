@@ -24,6 +24,7 @@ const char * f_control_aws1:: m_str_adclpf_type[ADCLPF_NONE] = {
 f_control_aws1::f_control_aws1(const char * name): 
   f_base(name),  m_fd(-1), m_sim(false), m_verb(false),
   m_ch_ctrl_out(nullptr), m_ch_ctrl_in(nullptr),
+  bconfig(false),
   rud_normal(127), eng_normal(127), rud(127), eng(127),
   m_adclpf(false), m_sz_adclpf(5), m_cur_adcsmpl(0), m_sigma_adclpf(3.0)
 {
@@ -87,6 +88,7 @@ bool f_control_aws1::init_run()
     }
   }
 
+  bconfig = false;
   return true;
 }
 
@@ -206,17 +208,9 @@ void f_control_aws1::lpf()
 
 void f_control_aws1::set_stat()
 {
-  if(m_ch_ctrl_out &&
-     (config.engine_max() != eng_max ||
-      config.engine_min() != eng_min ||
-      config.engine_nutral() != eng_nut ||
-      config.engine_forward() != eng_nuf ||
-      config.engine_backward() != eng_nub ||
-      config.rudder_max() != rud_max ||
-      config.rudder_min() != rud_min ||
-      config.rudder_mid() != rud_nut)){
+  if(m_ch_ctrl_out && !bconfig){
     builder.Clear();
-    auto payload = builder.CreateStruct(Control::Config(eng_max, eng_nuf, eng_nut, eng_nub, eng_min, rud_max, rud_nut, rud_min));
+    auto payload = Control::CreateConfig(builder, eng_max, eng_nuf, eng_nut, eng_nub, eng_min, rud_max, rud_nut, rud_min);
     auto data = CreateData(builder, get_time(),
 			   Control::Payload_Config, payload.Union());
     builder.Finish(data);
@@ -241,7 +235,18 @@ void f_control_aws1::get_inst()
 	if(m_ch_ctrl_out) m_ch_ctrl_out->push(buf, buf_len);	
 	break;
       case Control::Payload_Config:
-	config = *data->payload_as_Config();
+	{
+	auto config = data->payload_as_Config();
+	if(eng_max == config->engine_max() && 
+	   eng_min == config->engine_min() &&
+	   eng_nut == config->engine_nutral() && 
+	   eng_nuf == config->engine_forward() &&
+	   eng_nub == config->engine_backward() &&
+	   rud_max == config->rudder_max() &&
+	   rud_nut == config->rudder_mid() &&
+	   rud_min == config->rudder_min())
+	  bconfig = true;
+	}
 	break;
       }
     }
