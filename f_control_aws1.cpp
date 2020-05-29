@@ -26,7 +26,8 @@ f_control_aws1::f_control_aws1(const char * name):
   m_ch_ctrl_out(nullptr), m_ch_ctrl_in(nullptr),
   bconfig(false),
   rud_normal(127), eng_normal(127), rud(127), eng(127),
-  m_adclpf(false), m_sz_adclpf(5), m_cur_adcsmpl(0), m_sigma_adclpf(3.0)
+  m_adclpf(false), m_sz_adclpf(5), m_cur_adcsmpl(0), m_sigma_adclpf(3.0),
+  builder(256)
 {
   strcpy(m_dev, "/dev/zgpio1");
   m_flog_name[0] = 0;
