@@ -30,11 +30,12 @@ class f_control_aws1: public f_base
   // ch_aws1* are removed soon. ch_ctrl_data the replacment.
   ch_ctrl_data * m_ch_ctrl_out;         // (ui<-autopilot<-control)
   ch_ctrl_data * m_ch_ctrl_in;          // (ui->autopilot->control)
-  unsigned char buf[64];
+  unsigned char buf[256];
   unsigned int buf_len;
   flatbuffers::FlatBufferBuilder builder;
-  Control::Config config;
+
   unsigned char rud_normal, eng_normal, rud, eng;
+  bool bconfig; // configuration completed flag
   unsigned char eng_max, eng_nuf, eng_nut, eng_nub, eng_min,
     rud_max, rud_nut, rud_min;
 
