@@ -225,6 +225,9 @@ void f_control_aws1::get_inst()
   while(1){
     if(m_ch_ctrl_in){
       m_ch_ctrl_in->pop(buf, buf_len);
+      if(buf_len == 0)
+	break;
+      
       auto data = Control::GetData(buf);
       switch(data->payload_type()){
       case Control::Payload_Engine:
