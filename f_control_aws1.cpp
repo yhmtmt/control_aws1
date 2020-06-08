@@ -235,7 +235,7 @@ void f_control_aws1::get_inst()
 	if(m_ch_ctrl_out) m_ch_ctrl_out->push(buf, buf_len);
 	break;
       case Control::Payload_Rudder:
-	rud_normal = (unsigned char) (data->payload_as_Engine()->value());
+	rud_normal = (unsigned char) (data->payload_as_Rudder()->value());
 	if(m_ch_ctrl_out) m_ch_ctrl_out->push(buf, buf_len);	
 	break;
       case Control::Payload_Config:
